@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Kurisu Logo](kurisu.png)
+<img src="kurisu.png" alt="Kurisu Logo" width="200" />
 
 **一个 AI 原生的量化交易 Agent 与研究平台**
 
@@ -79,14 +79,14 @@ Kurisu 采用 **面向微服务的单体 (Microservices-ready Monolith)** 架构
 | **缓存** | Redis | 实时数据和任务队列 |
 | **交易所 API** | CCXT | 多交易所支持 |
 
-详情请参阅 [架构设计文档](docs/architecture_zh.md)。
+详情请参阅 [架构设计文档](docs/02-architecture/overview-zh.md)。
 
 ## 📚 文档
 
-- [需求文档](docs/requirements_zh.md) - 项目目标和功能规格
-- [架构设计文档](docs/architecture_zh.md) - 系统架构和模块设计
-- [技术选型详解](docs/tech_stack_zh.md) - 技术选择与决策理由
-- [Agent 架构深度设计](docs/agent_architecture_zh.md) - AI Agent 认知架构设计详情
+- [需求文档](docs/00-product/requirements-zh.md) - 项目目标和功能规格
+- [架构设计文档](docs/02-architecture/overview-zh.md) - 系统架构和模块设计
+- [技术选型详解](docs/04-technical-spec/tech-stack-zh.md) - 技术选择与决策理由
+- [Agent 架构深度设计](docs/02-architecture/agent-logic-zh.md) - AI Agent 认知架构设计详情
 
 ## 🚀 快速开始
 
