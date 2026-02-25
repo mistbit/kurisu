@@ -55,6 +55,7 @@ git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
 # Backend setup
+cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -64,6 +65,7 @@ cd ../frontend
 npm install
 
 # Configure environment
+cd ../backend
 cp .env.example .env
 ${EDITOR:-nano} .env
 ```
@@ -72,10 +74,12 @@ ${EDITOR:-nano} .env
 
 ```bash
 # Backend tests
+cd backend
+source venv/bin/activate
 pytest
 
 # Frontend tests
-cd frontend
+cd ../frontend
 npm run test
 ```
 
@@ -89,11 +93,13 @@ npm run test
 * Use [Ruff](https://github.com/astral-sh/ruff) for linting
 
 ```bash
-# Format code
+# Format code (from backend directory)
+cd backend
+source venv/bin/activate
 black .
 isort .
 
-# Lint code
+# Lint code (from backend directory)
 ruff check .
 ```
 

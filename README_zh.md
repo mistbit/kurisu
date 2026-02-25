@@ -106,6 +106,7 @@ git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
 # 后端设置
+cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -118,14 +119,14 @@ ${EDITOR:-nano} .env
 uvicorn app.main:app --reload
 
 # 前端设置 (在新终端中)
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
 
 ### 环境变量
 
-在项目根目录创建 `.env` 文件：
+在 `backend/` 目录创建 `.env` 文件：
 
 ```env
 # 数据库
@@ -158,16 +159,20 @@ BINANCE_API_SECRET=your_binance_secret
 
 ```bash
 # 以开发模式运行后端（热重载）
+cd backend
+source venv/bin/activate
 uvicorn app.main:app --reload
 
 # 以开发模式运行前端
-cd frontend
+cd ../frontend
 npm run dev
 
 # 运行测试
+cd ../backend
+source venv/bin/activate
 pytest
 
-cd frontend
+cd ../frontend
 npm run test
 ```
 

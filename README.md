@@ -104,6 +104,7 @@ git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
 # Backend setup
+cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -116,14 +117,14 @@ ${EDITOR:-nano} .env
 uvicorn app.main:app --reload
 
 # Frontend setup (in a new terminal)
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
 
 ### Environment Variables
 
-Create a `.env` file at the project root:
+Create a `.env` file in the `backend/` directory:
 
 ```env
 # Database
@@ -156,16 +157,20 @@ BINANCE_API_SECRET=your_binance_secret
 
 ```bash
 # Run backend in development mode with hot reload
+cd backend
+source venv/bin/activate
 uvicorn app.main:app --reload
 
 # Run frontend in development mode
-cd frontend
+cd ../frontend
 npm run dev
 
 # Run tests
+cd ../backend
+source venv/bin/activate
 pytest
 
-cd frontend
+cd ../frontend
 npm run test
 ```
 

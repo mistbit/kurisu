@@ -4,10 +4,11 @@
 为了启动 Kurisu 项目，我们需要一个坚实的基础。这包括搭建核心后端框架 (FastAPI)，以及集成用于访问市场数据的 CCXT 库。由于数据库 (PostgreSQL/TimescaleDB) 和缓存 (Redis) 已采用阿里云托管服务，本项目侧重于应用程序的配置与连接。
 
 ## 变更内容 (What Changes)
-- **目录结构**: 创建标准的 FastAPI 项目布局。
-- **依赖管理**: 创建 `pyproject.toml` (或 `requirements.txt`)，包含 `fastapi`, `uvicorn`, `sqlalchemy`, `asyncpg`, `alembic`, `pydantic-settings`, `ccxt`, `redis`。
-- **配置管理**: 使用 `pydantic-settings` 实现 `app/core/config.py` 以管理环境变量，支持外部服务连接。
-- **数据库连接**: 实现 `app/core/database.py` 用于异步连接到阿里云 PostgreSQL。
+- **目录结构**: 采用 `backend/` 和 `frontend/` 分离的 monorepo 布局。
+- **后端框架**: 创建标准的 FastAPI 项目布局于 `backend/` 目录下。
+- **依赖管理**: 在 `backend/` 目录下创建 `requirements.txt`，包含 `fastapi`, `uvicorn`, `sqlalchemy`, `asyncpg`, `pydantic-settings`, `ccxt`, `redis` 等。
+- **配置管理**: 使用 `pydantic-settings` 实现 `backend/app/core/config.py` 以管理环境变量，支持外部服务连接。
+- **数据库连接**: 实现 `backend/app/core/database.py` 用于异步连接到阿里云 PostgreSQL。
 - **Redis 连接**: 实现 Redis 客户端连接到阿里云 Redis。
 - **健康检查**: 添加一个简单的健康检查端点以验证与外部服务的连接。
 - **CCXT 集成**: 创建一个基础服务或工具类来初始化 CCXT 交易所。
@@ -15,7 +16,8 @@
 ## 影响 (Impact)
 - **受影响的规范**: 无 (初始设置)。
 - **受影响的代码**:
-  - 新增文件: `app/*`, `.env.example`, `requirements.txt`/`pyproject.toml`.
+  - 新增目录: `backend/`, `frontend/`。
+  - 新增文件: `backend/app/*`, `backend/tests/*`, `backend/.env.example`, `backend/requirements.txt`。
 
 ## 新增需求 (ADDED Requirements)
 
