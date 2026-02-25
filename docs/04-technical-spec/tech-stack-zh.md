@@ -24,13 +24,26 @@
     *   **UI 生态**: 配合 **Tailwind CSS** 和 **ShadcnUI** (基于 Radix UI)，可以极快地构建出专业、美观的金融终端界面。
     *   **数据可视化**: React 生态拥有最丰富的图表库 (Recharts, TradingView Lightweight Charts)，适合绘制 K 线图和回测曲线。
 
-### 3. 数据库 (Database): "混合存储" 策略
-*   **时序数据 (Market Data)**: **PostgreSQL + TimescaleDB**
-    *   **理由**: 量化交易的核心是时间序列数据 (OHLCV)。TimescaleDB 是基于 PG 的插件，兼具 SQL 的查询能力和 NoSQL 的写入性能，支持自动分区和降采样。
-*   **向量数据 (AI Memory)**: **pgvector** (PostgreSQL 扩展) 或 **ChromaDB**
-    *   **理由**: 为了让 Agent 拥有"记忆"，我们需要存储文本嵌入 (Embeddings)。pgvector 允许我们将向量数据与 business 数据存储在同一个 PG 实例中，简化架构；ChromaDB 则更专用于 AI，开发体验极佳。初步建议使用 **pgvector** 以保持架构精简。
-*   **缓存与消息队列**: **Redis**
-    *   **理由**: 用于缓存实时行情、存储 Celery 任务队列以及 Pub/Sub 消息分发。
+### 3. 数据库 (Database): "分层演进" 策略
+
+基于客观的业界规范与量化交易经验，我们采取**“初期灵活性优先，长期高性能演进”**的存储架构。
+
+#### 核心选型：PostgreSQL 18 + TimescaleDB + pgvector
+*   **理由**: 
+    *   **架构一致性**: 在系统初期，将**交易订单 (关系型)**、**行情数据 (时序型)** 和 **Agent 记忆 (向量型)** 统一存储在 PostgreSQL 18 中，可以极大降低运维成本，并允许通过标准 SQL 进行复杂的跨表关联查询（如：查询某次交易下单时的 AI 决策背景）。
+    *   **AI 原生优化**: PostgreSQL 18 针对向量搜索和 AI 任务进行了内核级优化，配合 `pgvector` 插件，是目前 AI + 数据库结合的最佳实践。
+    *   **时序扩展**: TimescaleDB 提供了自动分区（Hypertables）和持续聚合功能，足以应对分钟级及以上的量化行情需求。
+
+#### 缓存与消息中心：Redis / Valkey
+*   **理由**: 
+    *   **低延迟分发**: 业界公认的实时行情分发（Pub/Sub）和热数据缓存标准。
+    *   **原子性操作**: 利用 Redis 的原子计数器和分布式锁实现高并发下的风控逻辑。
+
+#### 架构演进路径 (Future Scaling)
+为了保持客观的扩展性，系统架构设计将解耦数据访问层，预留以下升级路径：
+1.  **大规模回测**: 若未来涉及 Tick 级或全市场海量因子回测，将引入 **ClickHouse** 作为专用分析引擎。
+2.  **高性能行情流**: 若需处理极高频行情，将引入 **Kafka** 作为消息总线。
+3.  **海量向量检索**: 若 Agent 长期记忆达到亿级规模，将迁移至 **Milvus** 或 **Pinecone** 等专用向量数据库。
 
 ### 4. AI 编排 (AI Orchestration): LangChain + LangGraph
 *   **选择**: **LangGraph** (构建有状态 Agent)

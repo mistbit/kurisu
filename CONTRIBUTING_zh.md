@@ -45,8 +45,6 @@
 
 * Python 3.10+
 * Node.js 18+
-* Docker & Docker Compose
-* Poetry（Python 包管理器）
 * Bun 或 npm（JavaScript 包管理器）
 
 ### 设置开发环境
@@ -58,14 +56,18 @@ cd kurisu
 
 # 后端设置
 cd backend
-poetry install
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
 # 前端设置
 cd ../frontend
 npm install
 
-# 启动基础设施服务
-docker-compose up -d
+# 配置环境变量
+cd ../backend
+cp .env.example .env
+${EDITOR:-nano} .env
 ```
 
 ### 运行测试
@@ -73,10 +75,11 @@ docker-compose up -d
 ```bash
 # 后端测试
 cd backend
-poetry run pytest
+source venv/bin/activate
+pytest
 
 # 前端测试
-cd frontend
+cd ../frontend
 npm run test
 ```
 
@@ -90,12 +93,14 @@ npm run test
 * 使用 [Ruff](https://github.com/astral-sh/ruff) 进行代码检查
 
 ```bash
-# 格式化代码
-poetry run black .
-poetry run isort .
+# 格式化代码 (在 backend 目录下)
+cd backend
+source venv/bin/activate
+black .
+isort .
 
-# 代码检查
-poetry run ruff check .
+# 代码检查 (在 backend 目录下)
+ruff check .
 ```
 
 #### TypeScript/JavaScript

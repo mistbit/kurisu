@@ -1,0 +1,8 @@
+- [ ] Docker containers (TimescaleDB, Redis) start successfully via `docker-compose up -d`.
+- [ ] Dependencies install correctly via `pip install -r requirements.txt`.
+- [ ] FastAPI application starts without errors using `uvicorn app.main:app --reload`.
+- [ ] Environment variables are loaded correctly from `.env`.
+- [ ] Database connection is established successfully (verified via logs or health check).
+- [ ] Redis connection is established successfully (verified via logs or health check).
+- [ ] CCXT exchange instance is created successfully (verified via logs).
+- [ ] `GET /health` endpoint returns `{"status": "ok"}`.

@@ -1,0 +1,8 @@
+- [x] 通过 `pip install -r requirements.txt` 正确安装依赖。
+- [x] 正确配置 `.env` 文件，包含阿里云 PostgreSQL 和 Redis 的连接信息。
+- [x] 使用 `uvicorn app.main:app --reload` 无错误启动 FastAPI 应用程序。
+- [x] 正确从 `.env` 加载环境变量。
+- [x] 成功建立到阿里云 PostgreSQL 的连接 (通过 `/health` 端点验证)。
+- [x] 成功建立到阿里云 Redis 的连接 (通过 `/health` 端点验证)。
+- [x] 成功创建 CCXT 交易所实例 (通过日志验证)。
+- [x] `GET /health` 端点返回 `{"status": "ok", ...}` 及各服务连接状态。
