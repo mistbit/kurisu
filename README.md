@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Kurisu Logo](kurisu.png)
+<img src="kurisu.png" alt="Kurisu Logo" width="200" />
 
 **An AI-Native Quantitative Trading Agent & Research Platform**
 
@@ -79,14 +79,14 @@ Kurisu follows a **Microservices-ready Monolith** architecture:
 | **Cache** | Redis | Real-time data & task queue |
 | **Exchange API** | CCXT | Multi-exchange support |
 
-See [Architecture Design](docs/architecture.md) for details.
+See [Architecture Design](docs/02-architecture/overview.md) for details.
 
 ## 📚 Documentation
 
-- [Requirements Document](docs/requirements.md) - Project goals and feature specifications
-- [Architecture Design](docs/architecture.md) - System architecture and module design
-- [Tech Stack Rationale](docs/tech_stack.md) - Technology choices and rationale
-- [Agent Architecture](docs/agent_architecture.md) - Deep dive into AI agent design
+- [Requirements Document](docs/00-product/requirements.md) - Project goals and feature specifications
+- [Architecture Design](docs/02-architecture/overview.md) - System architecture and module design
+- [Tech Stack Rationale](docs/04-technical-spec/tech-stack.md) - Technology choices and rationale
+- [Agent Architecture](docs/02-architecture/agent-logic.md) - Deep dive into AI agent design
 
 ## 🚀 Getting Started
 
