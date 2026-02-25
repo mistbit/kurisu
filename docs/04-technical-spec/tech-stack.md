@@ -24,13 +24,26 @@ We will adopt a **"Modern AI-Native Stack"**, with Python as the core backend (d
     *   **UI Ecosystem**: Combined with **Tailwind CSS** and **ShadcnUI** (based on Radix UI), it enables rapid development of professional, beautiful financial terminal interfaces.
     *   **Data Visualization**: The React ecosystem boasts the richest chart libraries (Recharts, TradingView Lightweight Charts), ideal for rendering candlestick charts and backtest curves.
 
-### 3. Database: "Hybrid Storage" Strategy
-*   **Time-Series Data (Market Data)**: **PostgreSQL + TimescaleDB**
-    *   **Rationale**: The core of quantitative trading is time-series data (OHLCV). TimescaleDB is a PG plugin that combines SQL query capabilities with NoSQL write performance, supporting automatic partitioning and downsampling.
-*   **Vector Data (AI Memory)**: **pgvector** (PostgreSQL extension) or **ChromaDB**
-    *   **Rationale**: To give the Agent "memory," we need to store text embeddings. pgvector allows storing vector data alongside business data in the same PG instance, simplifying the architecture; ChromaDB is more specialized for AI with an excellent developer experience. Initially, we recommend **pgvector** to keep the architecture lean.
-*   **Cache & Message Queue**: **Redis**
-    *   **Rationale**: Used for caching real-time market data, storing Celery task queues, and Pub/Sub message distribution.
+### 3. Database: "Layered Evolution" Strategy
+
+Based on objective industry standards and quantitative trading experience, we adopt a **"Flexibility First, Long-term Performance Evolution"** storage architecture.
+
+#### Core Selection: PostgreSQL 18 + TimescaleDB + pgvector
+*   **Rationale**: 
+    *   **Architectural Consistency**: In the initial stage, storing **Trading Orders (Relational)**, **Market Data (Time-series)**, and **Agent Memory (Vector)** together in PostgreSQL 18 significantly reduces maintenance costs and allows complex cross-table queries via standard SQL (e.g., querying the AI decision context at the time of a trade).
+    *   **AI-Native Optimization**: PostgreSQL 18 features kernel-level optimizations for vector search and AI tasks, making it a best practice when combined with the `pgvector` plugin.
+    *   **Time-series Scalability**: TimescaleDB provides automatic partitioning (Hypertables) and continuous aggregates, sufficient for minute-level and higher-frequency quantitative data.
+
+#### Cache & Message Center: Redis / Valkey
+*   **Rationale**: 
+    *   **Low-latency Distribution**: The industry standard for real-time market data distribution (Pub/Sub) and hot data caching.
+    *   **Atomic Operations**: Uses Redis atomic counters and distributed locks for risk control logic under high concurrency.
+
+#### Future Scaling Path
+To maintain objective scalability, the system architecture decouples the data access layer, reserving the following upgrade paths:
+1.  **Large-scale Backtesting**: If future requirements involve Tick-level or market-wide factor backtesting, **ClickHouse** will be introduced as a dedicated analytical engine.
+2.  **High-performance Market Data Streams**: If extremely high-frequency market data needs processing, **Kafka** will be introduced as the message bus.
+3.  **Massive Vector Retrieval**: If Agent long-term memory reaches the billion-scale, migration to dedicated vector databases like **Milvus** or **Pinecone** will be considered.
 
 ### 4. AI Orchestration: LangChain + LangGraph
 *   **Choice**: **LangGraph** (Building Stateful Agents)

@@ -1,0 +1,8 @@
+- [ ] 通过 `docker-compose up -d` 成功启动 Docker 容器 (TimescaleDB, Redis)。
+- [ ] 通过 `pip install -r requirements.txt` 正确安装依赖。
+- [ ] 使用 `uvicorn app.main:app --reload` 无错误启动 FastAPI 应用程序。
+- [ ] 正确从 `.env` 加载环境变量。
+- [ ] 成功建立数据库连接 (通过日志或健康检查验证)。
+- [ ] 成功建立 Redis 连接 (通过日志或健康检查验证)。
+- [ ] 成功创建 CCXT 交易所实例 (通过日志验证)。
+- [ ] `GET /health` 端点返回 `{"status": "ok"}`。
