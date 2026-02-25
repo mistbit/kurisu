@@ -45,8 +45,6 @@
 
 * Python 3.10+
 * Node.js 18+
-* Docker & Docker Compose
-* Poetry（Python 包管理器）
 * Bun 或 npm（JavaScript 包管理器）
 
 ### 设置开发环境
@@ -57,23 +55,24 @@ git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
 # 后端设置
-cd backend
-poetry install
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
 # 前端设置
 cd ../frontend
 npm install
 
-# 启动基础设施服务
-docker-compose up -d
+# 配置环境变量
+cp .env.example .env
+${EDITOR:-nano} .env
 ```
 
 ### 运行测试
 
 ```bash
 # 后端测试
-cd backend
-poetry run pytest
+pytest
 
 # 前端测试
 cd frontend
@@ -91,11 +90,11 @@ npm run test
 
 ```bash
 # 格式化代码
-poetry run black .
-poetry run isort .
+black .
+isort .
 
 # 代码检查
-poetry run ruff check .
+ruff check .
 ```
 
 #### TypeScript/JavaScript

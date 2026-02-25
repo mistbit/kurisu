@@ -105,13 +105,17 @@ Kurisu 采用 **面向微服务的单体 (Microservices-ready Monolith)** 架构
 git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
-# 启动基础设施服务 (PostgreSQL, TimescaleDB, Redis)
-docker-compose up -d
-
 # 后端设置
-cd backend
-poetry install
-poetry run python -m app.main
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 配置环境变量
+cp .env.example .env
+${EDITOR:-nano} .env
+
+# 启动后端
+uvicorn app.main:app --reload
 
 # 前端设置 (在新终端中)
 cd frontend
@@ -121,14 +125,25 @@ npm run dev
 
 ### 环境变量
 
-在后端目录创建 `.env` 文件：
+在项目根目录创建 `.env` 文件：
 
 ```env
 # 数据库
-DATABASE_URL=postgresql://user:password@localhost:5432/kurisu
+POSTGRES_SERVER=pgm-xxxx.pg.rds.aliyuncs.com
+POSTGRES_PORT=5432
+POSTGRES_USER=your_user
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=kurisu
+DB_POOL_PRE_PING=true
+DB_POOL_RECYCLE_SECONDS=1800
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_HOST=r-xxxx.redis.rds.aliyuncs.com
+REDIS_PORT=6379
+REDIS_PASSWORD=your_password
+REDIS_DB=0
+REDIS_SOCKET_CONNECT_TIMEOUT=5
+REDIS_SOCKET_TIMEOUT=5
 
 # LLM API 密钥 (选择一个或多个)
 OPENAI_API_KEY=your_openai_key
@@ -143,16 +158,14 @@ BINANCE_API_SECRET=your_binance_secret
 
 ```bash
 # 以开发模式运行后端（热重载）
-cd backend
-poetry run uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 
 # 以开发模式运行前端
 cd frontend
 npm run dev
 
 # 运行测试
-cd backend
-poetry run pytest
+pytest
 
 cd frontend
 npm run test

@@ -45,8 +45,6 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 * Python 3.10+
 * Node.js 18+
-* Docker & Docker Compose
-* Poetry (Python package manager)
 * Bun or npm (JavaScript package manager)
 
 ### Setting Up the Development Environment
@@ -57,23 +55,24 @@ git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
 # Backend setup
-cd backend
-poetry install
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
 # Frontend setup
 cd ../frontend
 npm install
 
-# Start infrastructure services
-docker-compose up -d
+# Configure environment
+cp .env.example .env
+${EDITOR:-nano} .env
 ```
 
 ### Running Tests
 
 ```bash
 # Backend tests
-cd backend
-poetry run pytest
+pytest
 
 # Frontend tests
 cd frontend
@@ -91,11 +90,11 @@ npm run test
 
 ```bash
 # Format code
-poetry run black .
-poetry run isort .
+black .
+isort .
 
 # Lint code
-poetry run ruff check .
+ruff check .
 ```
 
 #### TypeScript/JavaScript

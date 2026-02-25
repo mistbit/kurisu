@@ -94,8 +94,6 @@ See [Architecture Design](docs/02-architecture/overview.md) for details.
 
 - Python 3.10+
 - Node.js 18+
-- Docker & Docker Compose
-- Poetry (Python package manager)
 - Bun or npm (JavaScript package manager)
 
 ### Quick Start
@@ -105,13 +103,17 @@ See [Architecture Design](docs/02-architecture/overview.md) for details.
 git clone https://github.com/yourusername/kurisu.git
 cd kurisu
 
-# Start infrastructure services (PostgreSQL, TimescaleDB, Redis)
-docker-compose up -d
-
 # Backend setup
-cd backend
-poetry install
-poetry run python -m app.main
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+${EDITOR:-nano} .env
+
+# Run backend
+uvicorn app.main:app --reload
 
 # Frontend setup (in a new terminal)
 cd frontend
@@ -121,14 +123,25 @@ npm run dev
 
 ### Environment Variables
 
-Create a `.env` file in the backend directory:
+Create a `.env` file at the project root:
 
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/kurisu
+POSTGRES_SERVER=pgm-xxxx.pg.rds.aliyuncs.com
+POSTGRES_PORT=5432
+POSTGRES_USER=your_user
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=kurisu
+DB_POOL_PRE_PING=true
+DB_POOL_RECYCLE_SECONDS=1800
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_HOST=r-xxxx.redis.rds.aliyuncs.com
+REDIS_PORT=6379
+REDIS_PASSWORD=your_password
+REDIS_DB=0
+REDIS_SOCKET_CONNECT_TIMEOUT=5
+REDIS_SOCKET_TIMEOUT=5
 
 # LLM API Keys (choose one or more)
 OPENAI_API_KEY=your_openai_key
@@ -143,16 +156,14 @@ BINANCE_API_SECRET=your_binance_secret
 
 ```bash
 # Run backend in development mode with hot reload
-cd backend
-poetry run uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 
 # Run frontend in development mode
 cd frontend
 npm run dev
 
 # Run tests
-cd backend
-poetry run pytest
+pytest
 
 cd frontend
 npm run test
