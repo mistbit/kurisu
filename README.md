@@ -177,7 +177,7 @@ npm run test
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation (Current)
-- [ ] Project structure setup
+- [x] Project structure setup
 - [ ] Database schema design
 - [ ] Basic data ingestion (CCXT integration)
 - [ ] Simple backtesting engine
