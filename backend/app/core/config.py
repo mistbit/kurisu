@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    REDIS_USER: Optional[str] = None
     REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
     REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
@@ -43,6 +44,7 @@ class Settings(BaseSettings):
         if self.REDIS_PASSWORD:
             return MultiHostUrl.build(
                 scheme="redis",
+                username=self.REDIS_USER,
                 password=self.REDIS_PASSWORD,
                 host=self.REDIS_HOST,
                 port=self.REDIS_PORT,
