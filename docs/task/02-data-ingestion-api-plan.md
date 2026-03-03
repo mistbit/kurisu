@@ -67,28 +67,28 @@
 ### 2.2 详细任务分解
 
 #### 2.2.1 基础配置
-- [ ] **API 路由规划**:
+- [x] **API 路由规划**:
   - `/api/v1/markets`: 市场相关
   - `/api/v1/data`: 历史数据查询
-- [ ] **依赖注入**:
+- [x] **依赖注入**:
   - 封装 `get_db` 依赖。
   - 封装 `get_exchange_service` 依赖。
 
 #### 2.2.2 市场接口 (`/markets`)
-- [ ] `GET /markets`: 获取所有支持的交易对列表（支持分页、过滤）。
-- [ ] `GET /markets/{id}`: 获取特定交易对详情。
-- [ ] `POST /markets/sync`: 手动触发市场元数据同步（管理端功能）。
+- [x] `GET /markets`: 获取所有支持的交易对列表（支持分页、过滤）。
+- [x] `GET /markets/{id}`: 获取特定交易对详情。
+- [x] `POST /markets/sync`: 手动触发市场元数据同步（管理端功能）。
 
 #### 2.2.3 数据接口 (`/data`)
-- [ ] `GET /data/ohlcv`: 查询 K 线数据。
+- [x] `GET /data/ohlcv`: 查询 K 线数据。
   - 参数: `market_id`, `timeframe`, `start_time`, `end_time`, `limit`。
   - 响应: JSON 数组，包含 `[timestamp, open, high, low, close, volume]`。
 - [ ] `GET /data/trades`: 查询近期成交数据（可选）。
 
 ### 2.3 接口约束与可观测性
-- [ ] **响应排序与上限**:
+- [x] **响应排序与上限**:
   - 支持 `order=asc/desc`，限制 `limit` 最大值。
-- [ ] **基础诊断接口**:
+- [x] **基础诊断接口**:
   - `GET /api/v1/health`
   - `GET /api/v1/version`
 
