@@ -14,6 +14,7 @@ from app.core.redis import redis_client
 from app.models.market import Market, OHLCV
 from app.services.exchange import ExchangeService, MarketService
 from app.scheduler import start_scheduler, shutdown_scheduler
+from app.api.v1 import sync
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+
+# Include API routers
+app.include_router(sync.router)
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check(db: AsyncSession = Depends(get_db)):

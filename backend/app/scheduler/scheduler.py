@@ -6,8 +6,10 @@ to schedule and manage background tasks such as:
 - Market metadata synchronization
 - Backfill gap detection and repair
 """
+import asyncio
 import logging
 from contextlib import contextmanager
+from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.redis import RedisJobStore
@@ -157,10 +159,8 @@ def shutdown_scheduler() -> None:
 
     # Close exchange services first
     from app.scheduler import jobs
-    import asyncio
 
     try:
-        # Run close_exchange_services if it exists
         if hasattr(jobs, 'close_exchange_services'):
             loop = asyncio.get_event_loop()
             loop.run_until_complete(jobs.close_exchange_services())
@@ -176,6 +176,45 @@ def shutdown_scheduler() -> None:
         logger.info("Scheduler shut down successfully.")
 
     _scheduler = None
+
+
+def get_job_stats(job_id: str) -> Optional[dict]:
+    """Get statistics for a specific job.
+
+    Args:
+        job_id: Job identifier
+
+    Returns:
+        Job statistics, or None if not found
+    """
+    from app.scheduler import jobs
+
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(jobs.get_job_stats(job_id))
+
+
+def get_all_job_stats() -> dict[str, dict]:
+    """Get statistics for all jobs.
+
+    Returns:
+        Dictionary mapping job IDs to their statistics
+    """
+    from app.scheduler import jobs
+
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(jobs.get_all_job_stats())
+
+
+def get_active_connections() -> int:
+    """Get the number of active exchange connections.
+
+    Returns:
+        Number of cached exchange services
+    """
+    from app.scheduler import jobs
+
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(jobs.get_exchange_service_count())
 
 
 @contextmanager
