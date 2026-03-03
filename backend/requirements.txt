@@ -7,3 +7,4 @@ pydantic-settings
 ccxt
 redis
 greenlet
+ruff

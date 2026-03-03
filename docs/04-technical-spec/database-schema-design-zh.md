@@ -198,7 +198,7 @@ erDiagram
 | :--- | :--- | :--- | :--- |
 | `time` | `DateTime(TIMESTAMPTZ)` | PK | 成交时间 |
 | `market_id` | `Integer` | PK, FK | 关联市场 |
-| `trade_id` | `String` | Not Null | 交易所原始成交 ID |
+| `trade_id` | `String` | PK, Not Null | 交易所原始成交 ID |
 | `side` | `String(4)` | | 'buy' or 'sell' |
 | `price` | `Numeric(20,10)` | | 成交价 |
 | `amount` | `Numeric(20,10)` | | 成交数量 |
@@ -208,25 +208,26 @@ erDiagram
 **索引建议**:
 - `idx_trades_market_time_desc` on (`market_id`, `time DESC`)
 
-**约束建议**:
-- `unique_trades_market_trade_id` on (`market_id`, `trade_id`)
+**约束说明**:
+- 由于 TimescaleDB 的分区特性，Hypertable 的主键必须包含分区键 `time`。因此 `trades` 表的主键调整为 `(time, market_id, trade_id)`。
+- 原计划的 `unique_trades_market_trade_id` 唯一约束因不包含 `time` 字段，在 Hypertable 中无法直接创建，故移除。
 
 **TimescaleDB 建议**:
-- 如果逐笔成交写入频率高，建议将 `trades` 转为 Hypertable，并配置压缩与保留策略。
+- 如果逐笔成交写入频率高，建议将 `trades` 转为 Hypertable。
+- 注意：Apache License 版本的 TimescaleDB 不支持原生压缩与保留策略。
 
 **迁移脚本示例**:
 ```sql
 SELECT create_hypertable('trades', 'time', if_not_exists => TRUE);
 
-ALTER TABLE trades SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'market_id',
-    timescaledb.compress_orderby = 'time DESC'
-);
-
-SELECT add_compression_policy('trades', INTERVAL '3 days');
-
-SELECT add_retention_policy('trades', INTERVAL '30 days');
+-- 以下功能仅在 TimescaleDB Community License 下可用
+-- ALTER TABLE trades SET (
+--     timescaledb.compress,
+--     timescaledb.compress_segmentby = 'market_id',
+--     timescaledb.compress_orderby = 'time DESC'
+-- );
+-- SELECT add_compression_policy('trades', INTERVAL '3 days');
+-- SELECT add_retention_policy('trades', INTERVAL '30 days');
 ```
 
 
@@ -369,57 +370,39 @@ SELECT add_retention_policy('trades', INTERVAL '30 days');
 
 ## 4. TimescaleDB 特定优化
 
+**注意**: 由于云端数据库使用 TimescaleDB Apache License，不支持 `compression` (压缩) 和 `continuous aggregates` (连续聚合) 等高级功能。以下配置仅在使用 Community License 时生效。
+
 ### 4.1 前置要求
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 ```
 
-在 Alembic 迁移脚本中，创建 `ohlcv` 表后，需要执行以下 SQL 将其转换为 Hypertable：
+在 Alembic 迁移脚本中，创建 `ohlcv` 表后，执行以下 SQL 将其转换为 Hypertable：
 
 ```sql
 SELECT create_hypertable('ohlcv', 'time', if_not_exists => TRUE);
 
-ALTER TABLE ohlcv SET (
-    timescaledb.compress,
-    timescaledb.compress_segmentby = 'market_id,timeframe',
-    timescaledb.compress_orderby = 'time DESC'
-);
-
-SELECT add_compression_policy('ohlcv', INTERVAL '7 days');
-
-SELECT add_retention_policy('ohlcv', INTERVAL '1 year');
+-- Community License Only
+-- ALTER TABLE ohlcv SET (
+--     timescaledb.compress,
+--     timescaledb.compress_segmentby = 'market_id,timeframe',
+--     timescaledb.compress_orderby = 'time DESC'
+-- );
+-- SELECT add_compression_policy('ohlcv', INTERVAL '7 days');
+-- SELECT add_retention_policy('ohlcv', INTERVAL '1 year');
 ```
 
-### 4.2 连续聚合 (Continuous Aggregates)
+### 4.2 连续聚合 (Continuous Aggregates) - Community License Only
 
-为了优化多周期查询，建议仅存储 `1m` (分钟线) 数据，并利用 Continuous Aggregates 自动计算 `1h`, `4h`, `1d` 等周期。
+*当前环境不支持，需在应用层或通过定时任务实现聚合。*
 
-**优点**:
-- 节省存储空间 (无需存储重复数据)。
-- 保证各周期数据一致性。
-- 查询速度快 (预计算)。
+为了优化多周期查询，通常建议仅存储 `1m` (分钟线) 数据，并利用 Continuous Aggregates 自动计算 `1h`, `4h`, `1d` 等周期。
 
-**示例定义**:
+**示例定义 (暂不可用)**:
 
 ```sql
-CREATE MATERIALIZED VIEW ohlcv_1h
-WITH (timescaledb.continuous) AS
-SELECT time_bucket('1 hour', time) AS bucket,
-       market_id,
-       first(open, time) AS open,
-       max(high) AS high,
-       min(low) AS low,
-       last(close, time) AS close,
-       sum(volume) AS volume
-FROM ohlcv
-WHERE timeframe = '1m'
-GROUP BY bucket, market_id;
-
-SELECT add_continuous_aggregate_policy('ohlcv_1h',
-    start_offset => INTERVAL '7 days',
-    end_offset => INTERVAL '1 hour',
-    schedule_interval => INTERVAL '10 minutes');
+-- CREATE MATERIALIZED VIEW ohlcv_1h ...
 ```
 
 
