@@ -8,3 +8,7 @@ ccxt
 redis
 greenlet
 ruff
+aiosqlite
+pytest
+httpx
+apscheduler[redis]

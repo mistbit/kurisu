@@ -8,10 +8,12 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy import asc, desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import engine, get_db
 from app.core.redis import redis_client
 from app.models.market import Market, OHLCV
 from app.services.exchange import ExchangeService, MarketService
+from app.scheduler import start_scheduler, shutdown_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +21,33 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     try:
         logger.info("Performing startup checks...")
-        
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("Database connection established.")
-        
+
         await redis_client.ping()
         logger.info("Redis connection established.")
-        
+
+        # Start the scheduler if enabled
+        if settings.SCHEDULER_ENABLED:
+            logger.info("Starting scheduler...")
+            start_scheduler()
+            logger.info("Scheduler started.")
+        else:
+            logger.info("Scheduler disabled by configuration.")
+
     except Exception:
         logger.exception("Startup check failed")
         await redis_client.close()
         await engine.dispose()
         raise
-    
+
     yield
-    
+
     logger.info("Shutting down...")
+    # Shutdown scheduler if running
+    shutdown_scheduler()
     await redis_client.close()
     await engine.dispose()
     logger.info("Shutdown complete.")
