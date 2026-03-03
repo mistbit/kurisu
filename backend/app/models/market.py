@@ -19,7 +19,8 @@ class Market(Base):
     price_precision = Column(Integer)
     amount_precision = Column(Integer)
 
-    orders = relationship("Order", back_populates="market")
+    orders = relationship("Order", back_populates="market", lazy="raise")
+    sync_states = relationship("DataSyncState", backref="market", lazy="raise")
 
     __table_args__ = (
         UniqueConstraint('exchange', 'symbol', name='uix_exchange_symbol'),

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
         env_file=".env", env_ignore_empty=True, extra="ignore"
     )
 
+    # PostgreSQL Configuration
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     DB_POOL_PRE_PING: bool = True
     DB_POOL_RECYCLE_SECONDS: int = 1800
 
+    # Redis Configuration
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_USER: Optional[str] = None
@@ -25,6 +27,15 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
     REDIS_SOCKET_TIMEOUT: int = 5
+
+    # Scheduler Configuration
+    SCHEDULER_ENABLED: bool = True
+    AUTO_SYNC_INTERVAL_MINUTES: int = 1
+    MARKET_SYNC_HOUR: int = 0  # Hour of day (0-23) to sync market data
+    BACKFILL_CHECK_INTERVAL_HOURS: int = 1
+
+    # Concurrency Control
+    MAX_CONCURRENT_SYNCS: int = 3  # Max concurrent exchange API calls
 
     @computed_field
     @property
