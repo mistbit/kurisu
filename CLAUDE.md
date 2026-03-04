@@ -102,6 +102,7 @@ app/
 - `MARKET_SYNC_HOUR`: Hour of day for market metadata sync (0-23, default: `0`)
 - `BACKFILL_CHECK_INTERVAL_HOURS`: Interval for backfill gap check (default: `1`)
 - `MAX_CONCURRENT_SYNCS`: Maximum concurrent exchange API calls (default: `3`)
+- `EXCHANGES`: List of exchanges to sync (default: `["binance"]`)
 
 **Security Notes**:
 - Never use `eval()` for JSON parsing - always use `json.loads()`
@@ -139,6 +140,8 @@ The scheduler uses APScheduler for background job execution:
 - Job timeout handling (default 5 minutes)
 - Retry logic with exponential backoff
 - Job statistics tracking in Redis
+- Automatic gap detection and backfill (gaps ≤ 50 candles)
+- Configurable exchange list via `EXCHANGES` setting
 
 ## API Endpoints
 
@@ -155,7 +158,8 @@ The scheduler uses APScheduler for background job execution:
 - `GET /api/v1/data/ohlcv`: Query OHLCV data by market_id, timeframe, time range (returns `[timestamp_ms, open, high, low, close, volume]` format)
 - `GET /api/v1/data/sync_state`: List sync states with filtering (market_id, timeframe, sync_status, has_errors, pagination)
 - `GET /api/v1/data/sync_state/{sync_state_id}`: Get specific sync state details
-- `POST /api/v1/data/backfill`: Trigger backfill task for specified markets and timeframes
+- `POST /api/v1/data/backfill`: Trigger backfill task for specified markets and timeframes (runs as background task)
+- `GET /api/v1/data/backfill/{task_id}`: Get backfill task status
 - `POST /api/v1/data/auto_sync`: Enable or disable auto-syncing for a market and timeframes
 
 ### Scheduler
