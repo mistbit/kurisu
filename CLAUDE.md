@@ -62,20 +62,29 @@ The backend follows a modular structure in `backend/app/`:
 ```
 app/
 ├── api/              # API Routes organized by version
-│   └── v1/          # v1 API endpoints (sync, scheduler, etc.)
+│   └── v1/          # v1 API endpoints (sync, scheduler, auth, etc.)
 ├── core/             # Config, Database, Redis connections
 │   ├── config.py     # Pydantic Settings for env vars
 │   ├── database.py   # SQLAlchemy async engine and session
-│   └── redis.py      # Redis client
+│   ├── redis.py      # Redis client
+│   └── deps.py       # Authentication dependencies
 ├── models/           # SQLAlchemy ORM models
 │   ├── market.py     # Market, OHLCV, Trade models
-│   ├── account.py    # Account-related models
+│   ├── account.py    # Account, User, APIKey models
 │   ├── order.py      # Order-related models
 │   ├── strategy.py   # Strategy-related models
 │   └── sync_state.py # Data sync state tracking
 ├── services/         # Business logic layer
 │   ├── exchange.py   # ExchangeService, MarketService, MarketDataService
-│   └── sync_state_service.py # SyncStateService for state management
+│   ├── sync_state_service.py # SyncStateService for state management
+│   ├── auth.py       # JWT token and password utilities
+│   ├── user_service.py # User and API key management
+│   └── rate_limiter.py # Redis sliding window rate limiting
+├── strategy/         # Backtesting engine
+│   ├── base.py       # BaseStrategy, Signal, Position models
+│   ├── backtest.py   # BacktestEngine, PerformanceCalculator
+│   ├── exchange_sim.py # ExchangeSimulator for order execution
+│   └── examples.py   # Example strategies (MA, RSI)
 └── scheduler/        # Background job scheduling
     ├── scheduler.py  # APScheduler integration
     ├── jobs.py       # Scheduled job definitions
@@ -103,6 +112,10 @@ app/
 - `BACKFILL_CHECK_INTERVAL_HOURS`: Interval for backfill gap check (default: `1`)
 - `MAX_CONCURRENT_SYNCS`: Maximum concurrent exchange API calls (default: `3`)
 - `EXCHANGES`: List of exchanges to sync (default: `["binance"]`)
+- `SECRET_KEY`: Secret key for JWT token signing (required in production)
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration time (default: 30)
+- `RATE_LIMIT_ENABLED`: Enable/disable rate limiting (default: `true`)
+- `RATE_LIMIT_PER_MINUTE`: Default rate limit (default: 100)
 
 **Security Notes**:
 - Never use `eval()` for JSON parsing - always use `json.loads()`
@@ -122,6 +135,56 @@ app/
 - `MarketService`: Syncs market metadata from exchange to database with allowlist/denylist filtering.
 - `MarketDataService`: Fetches historical OHLCV data with automatic pagination and batch upsert.
 - `SyncStateService`: High-level service for managing data synchronization states. Provides methods for querying, creating, and updating sync state records with Redis caching for performance.
+- `UserService`: User and API key management with CRUD operations.
+- `RateLimiter`: Redis-based sliding window rate limiting.
+
+### Authentication System
+
+The API supports two authentication methods:
+
+**JWT Token Authentication**:
+- Login via `POST /api/v1/auth/login` to get access token
+- Include token in `Authorization: Bearer <token>` header
+- Tokens expire after `ACCESS_TOKEN_EXPIRE_MINUTES` (default: 30)
+
+**API Key Authentication**:
+- Create keys via `POST /api/v1/auth/api-keys`
+- Include key in `X-API-Key` header
+- Keys support custom rate limits and expiration dates
+
+**Authentication Dependencies** (in `app/core/deps.py`):
+- `get_current_user`: Requires valid JWT token
+- `get_authenticated_user`: Accepts either JWT or API key
+- `require_superuser`: Requires superuser privileges
+- `check_rate_limit`: Enforces rate limiting
+
+### Backtest Engine
+
+The backtest engine in `app/strategy/` provides:
+
+**BaseStrategy**: Abstract base class for trading strategies
+- Implement `generate_signal(bar, symbol)` to create signals
+- Use `get_history()`, `get_close_prices()` for historical data
+- Track positions via `has_position()`, `get_position()`
+
+**ExchangeSimulator**: Simulates order execution
+- Market and limit order support
+- Commission and slippage simulation
+- Stop-loss and take-profit handling
+
+**BacktestEngine**: Orchestrates backtesting
+- Load data via `load_data(symbol, bars)`
+- Run via `engine.run(start_date, end_date)`
+- Returns `BacktestResult` with performance metrics
+
+**PerformanceCalculator**: Calculates metrics
+- Sharpe ratio, Sortino ratio
+- Maximum drawdown
+- Win rate, profit factor
+
+**Example Strategies** (in `app/strategy/examples.py`):
+- `MovingAverageCrossoverStrategy`: Buy/sell on MA crossovers
+- `RSIStrategy`: Mean reversion using RSI oversold/overbought
 
 ### Scheduler System
 
@@ -144,6 +207,15 @@ The scheduler uses APScheduler for background job execution:
 - Configurable exchange list via `EXCHANGES` setting
 
 ## API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/register`: Register a new user account
+- `POST /api/v1/auth/login`: Login and get JWT access token
+- `GET /api/v1/auth/me`: Get current authenticated user info
+- `POST /api/v1/auth/password`: Change current user's password
+- `POST /api/v1/auth/api-keys`: Create a new API key
+- `GET /api/v1/auth/api-keys`: List user's API keys
+- `DELETE /api/v1/auth/api-keys/{id}`: Revoke an API key
 
 ### Health & Info
 - `GET /health` / `GET /api/v1/health`: Health check verifying DB and Redis connections
