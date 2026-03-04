@@ -1,0 +1,66 @@
+"""add user and api key tables
+
+Revision ID: 2a7b3c4d5e6f
+Revises: 4f94579b9e14
+Create Date: 2026-03-04 15:00:00.000000
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision: str = '2a7b3c4d5e6f'
+down_revision: Union[str, None] = '4f94579b9e14'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    # Create users table
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('username', sa.String(length=50), nullable=False),
+        sa.Column('email', sa.String(length=100), nullable=False),
+        sa.Column('hashed_password', sa.String(length=255), nullable=False),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
+        sa.Column('is_superuser', sa.Boolean(), nullable=False, server_default='false'),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('username'),
+        sa.UniqueConstraint('email'),
+    )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
+
+    # Create api_keys table
+    op.create_table(
+        'api_keys',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('key_hash', sa.String(length=255), nullable=False),
+        sa.Column('name', sa.String(length=100), nullable=False),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
+        sa.Column('rate_limit', sa.Integer(), nullable=False, server_default='100'),
+        sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('key_hash'),
+    )
+    op.create_index(op.f('ix_api_keys_key_hash'), 'api_keys', ['key_hash'], unique=True)
+    op.create_index(op.f('ix_api_keys_user_id'), 'api_keys', ['user_id'], unique=False)
+
+
+def downgrade() -> None:
+    op.drop_index(op.f('ix_api_keys_user_id'), table_name='api_keys')
+    op.drop_index(op.f('ix_api_keys_key_hash'), table_name='api_keys')
+    op.drop_table('api_keys')
+    op.drop_index(op.f('ix_users_username'), table_name='users')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_table('users')

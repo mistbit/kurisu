@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     # Exchange Configuration
     EXCHANGES: list[str] = ["binance"]  # List of exchanges to sync
 
+    # Authentication Configuration
+    SECRET_KEY: str = "change-me-in-production"  # Must be set in production
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    API_KEY_HEADER: str = "X-API-Key"
+    RATE_LIMIT_PER_MINUTE: int = 100
+    RATE_LIMIT_ENABLED: bool = True
+
     @computed_field
     @property
     def DATABASE_URL(self) -> PostgresDsn:
