@@ -89,13 +89,25 @@ async def test_update_last_sync_time(db_session):
 @pytest.mark.asyncio
 async def test_query_by_sync_status(db_session):
     """Test querying sync states by sync status."""
-    db_session.add(DataSyncState(exchange="binance", symbol="XRP/USDT", timeframe="1h", market_id=4, sync_status=SyncStatus.IDLE, is_auto_syncing=True))
-    db_session.add(DataSyncState(exchange="binance", symbol="ADA/USDT", timeframe="1h", market_id=5, sync_status=SyncStatus.ERROR, is_auto_syncing=True))
-    db_session.add(DataSyncState(exchange="binance", symbol="DOGE/USDT", timeframe="1h", market_id=6, sync_status=SyncStatus.IDLE, is_auto_syncing=True))
+    # Create unique states for this test
+    db_session.add(DataSyncState(
+        exchange="binance", symbol="XRP/USDT", timeframe="1h",
+        market_id=100, sync_status=SyncStatus.IDLE, is_auto_syncing=True
+    ))
+    db_session.add(DataSyncState(
+        exchange="binance", symbol="ADA/USDT", timeframe="1h",
+        market_id=101, sync_status=SyncStatus.ERROR, is_auto_syncing=True
+    ))
+    db_session.add(DataSyncState(
+        exchange="binance", symbol="DOGE/USDT", timeframe="1h",
+        market_id=102, sync_status=SyncStatus.IDLE, is_auto_syncing=True
+    ))
     await db_session.commit()
 
     result = await db_session.execute(
-        select(DataSyncState).where(DataSyncState.sync_status == SyncStatus.IDLE)
+        select(DataSyncState)
+        .where(DataSyncState.market_id.in_([100, 101, 102]))
+        .where(DataSyncState.sync_status == SyncStatus.IDLE)
     )
     idle_states = result.scalars().all()
 

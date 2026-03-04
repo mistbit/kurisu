@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Concurrency Control
     MAX_CONCURRENT_SYNCS: int = 3  # Max concurrent exchange API calls
 
+    # Exchange Configuration
+    EXCHANGES: list[str] = ["binance"]  # List of exchanges to sync
+
     @computed_field
     @property
     def DATABASE_URL(self) -> PostgresDsn:
