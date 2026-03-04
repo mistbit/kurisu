@@ -60,7 +60,7 @@ app = FastAPI(
 )
 
 # Include API routers
-app.include_router(sync.router)
+app.include_router(sync.router, prefix="/api/v1")
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check(db: AsyncSession = Depends(get_db)):

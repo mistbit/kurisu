@@ -3,6 +3,7 @@
 This module provides a high-level service interface for all operations
 related to tracking and managing data synchronization states.
 """
+import json
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -20,6 +21,25 @@ logger = logging.getLogger(__name__)
 
 # Cache TTL in seconds
 CACHE_TTL = 300  # 5 minutes
+
+
+def _serialize_sync_state(sync_state: DataSyncState) -> str:
+    """Serialize a DataSyncState to JSON string for caching."""
+    return json.dumps({
+        "id": sync_state.id,
+        "market_id": sync_state.market_id,
+        "exchange": sync_state.exchange,
+        "symbol": sync_state.symbol,
+        "timeframe": sync_state.timeframe,
+        "sync_status": sync_state.sync_status,
+        "last_sync_time": sync_state.last_sync_time.isoformat() if sync_state.last_sync_time else None,
+        "backfill_completed_until": sync_state.backfill_completed_until.isoformat() if sync_state.backfill_completed_until else None,
+        "is_auto_syncing": sync_state.is_auto_syncing,
+        "error_message": sync_state.error_message,
+        "last_error_time": sync_state.last_error_time.isoformat() if sync_state.last_error_time else None,
+        "created_at": sync_state.created_at.isoformat() if sync_state.created_at else None,
+        "updated_at": sync_state.updated_at.isoformat() if sync_state.updated_at else None,
+    })
 
 
 class SyncStateService:
@@ -68,7 +88,7 @@ class SyncStateService:
 
         # Cache the result
         if sync_state:
-            await redis_client.set(cache_key, sync_state.model_dump_json(), ex=CACHE_TTL)
+            await redis_client.set(cache_key, _serialize_sync_state(sync_state), ex=CACHE_TTL)
 
         return sync_state
 

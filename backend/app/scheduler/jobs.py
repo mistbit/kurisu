@@ -320,8 +320,8 @@ async def sync_markets_metadata():
     try:
         async with asyncio.timeout(JOB_TIMEOUT):
             async with SessionLocal() as session:
-                # Get list of exchanges from sync states (or use configured list)
-                exchanges = ["binance"]  # TODO: Read from config or sync_states
+                # Get list of exchanges from config
+                exchanges = settings.EXCHANGES
 
                 total_synced = 0
                 for exchange_id in exchanges:
@@ -373,6 +373,7 @@ async def check_backfill_gaps():
                 sync_states = await sync_service.list_auto_syncing(limit=1000)
 
                 gaps_found = 0
+                gaps_backfilled = 0
                 for sync_state in sync_states:
                     # Check for gaps in the data
                     gaps = await _detect_gaps(session, sync_state)
@@ -381,11 +382,21 @@ async def check_backfill_gaps():
                         logger.info(
                             f"Found {len(gaps)} gaps for {sync_state.symbol}/{sync_state.timeframe}"
                         )
-                        # TODO: Trigger backfill jobs for gaps
+                        # Trigger backfill for gaps
+                        backfilled = await _trigger_gap_backfill(
+                            session, sync_state, gaps
+                        )
+                        gaps_backfilled += backfilled
 
-                logger.info(f"Backfill gap check job completed: {gaps_found} gaps found")
+                await session.commit()
+                logger.info(
+                    f"Backfill gap check job completed: {gaps_found} gaps found, "
+                    f"{gaps_backfilled} backfills triggered"
+                )
 
-                await _update_job_stats(job_id, job_start, successful=True, gaps=gaps_found)
+                await _update_job_stats(
+                    job_id, job_start, successful=True, gaps=gaps_found
+                )
 
     except asyncio.TimeoutError:
         logger.error(f"Backfill gap check job timed out after {JOB_TIMEOUT} seconds")
@@ -453,6 +464,75 @@ async def _detect_gaps(session: AsyncSession, sync_state: DataSyncState) -> list
             })
 
     return gaps
+
+
+async def _trigger_gap_backfill(
+    session: AsyncSession,
+    sync_state: DataSyncState,
+    gaps: list[dict],
+) -> int:
+    """Trigger backfill for detected gaps.
+
+    Args:
+        session: Database session
+        sync_state: Sync state record
+        gaps: List of gap dictionaries
+
+    Returns:
+        Number of gaps that were successfully triggered for backfill
+
+    Gap backfill strategy:
+    - Small gaps (<= 50 missing candles): Backfill immediately
+    - Large gaps (> 50 missing candles): Log warning, skip auto-backfill
+    """
+    if not gaps:
+        return 0
+
+    # Get exchange service
+    try:
+        exchange_service = await _get_exchange_service(sync_state.exchange)
+    except Exception as e:
+        logger.error(
+            f"Failed to get exchange service for {sync_state.exchange}: {e}"
+        )
+        return 0
+
+    market_data_service = MarketDataService(exchange_service, session)
+    backfilled_count = 0
+
+    for gap in gaps:
+        missing_candles = gap.get("missing_candles", 0)
+
+        # Skip large gaps - they may need manual intervention
+        if missing_candles > 50:
+            logger.warning(
+                f"Large gap detected for {sync_state.symbol}/{sync_state.timeframe}: "
+                f"{missing_candles} missing candles from {gap['start']} to {gap['end']}. "
+                "Skipping auto-backfill - consider manual backfill."
+            )
+            continue
+
+        try:
+            # Fetch data for the gap period
+            rows_fetched = await market_data_service.fetch_ohlcv_history(
+                symbol=sync_state.symbol,
+                market_id=sync_state.market_id,
+                timeframe=sync_state.timeframe,
+                start_time=gap["start"],
+                end_time=gap["end"],
+                limit=500,
+            )
+            backfilled_count += 1
+            logger.info(
+                f"Backfilled gap for {sync_state.symbol}/{sync_state.timeframe}: "
+                f"{rows_fetched} rows from {gap['start']} to {gap['end']}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to backfill gap for {sync_state.symbol}/{sync_state.timeframe}: {e}"
+            )
+
+    return backfilled_count
 
 
 async def _update_job_stats(
