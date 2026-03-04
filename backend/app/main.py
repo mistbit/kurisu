@@ -15,6 +15,8 @@ from app.models.market import Market, OHLCV
 from app.services.exchange import ExchangeService, MarketService
 from app.scheduler import start_scheduler, shutdown_scheduler
 from app.api.v1 import sync
+from app.api.v1.websocket import router as websocket_router
+from app.services.ohlcv_stream import ohlcv_stream_service
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,11 @@ async def lifespan(app: FastAPI):
         else:
             logger.info("Scheduler disabled by configuration.")
 
+        # Start OHLCV stream service
+        logger.info("Starting OHLCV stream service...")
+        await ohlcv_stream_service.start()
+        logger.info("OHLCV stream service started.")
+
     except Exception:
         logger.exception("Startup check failed")
         await redis_client.close()
@@ -47,6 +54,8 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down...")
+    # Stop OHLCV stream service
+    await ohlcv_stream_service.stop()
     # Shutdown scheduler if running
     shutdown_scheduler()
     await redis_client.close()
@@ -61,6 +70,7 @@ app = FastAPI(
 
 # Include API routers
 app.include_router(sync.router, prefix="/api/v1")
+app.include_router(websocket_router)
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check(db: AsyncSession = Depends(get_db)):
