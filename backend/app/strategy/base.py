@@ -194,3 +194,38 @@ class BaseStrategy(ABC):
     def get_equity(self) -> float:
         """Get current total equity."""
         return self.state.total_equity
+
+    def calculate_position_size(
+        self,
+        price: float,
+        symbol: str,
+        risk_pct: Optional[float] = None,
+    ) -> float:
+        """Calculate position size based on configuration.
+
+        Args:
+            price: Entry price
+            symbol: Symbol to trade
+            risk_pct: Optional override for risk percentage
+
+        Returns:
+            Position size (quantity)
+        """
+        equity = self.get_equity()
+        sizing = self.config.position_sizing
+
+        if sizing == "fixed":
+            # Fixed dollar amount
+            amount = equity * self.config.max_position_size
+            return amount / price
+
+        elif sizing == "percent":
+            # Percent of equity
+            pct = risk_pct or self.config.max_position_size
+            amount = equity * pct
+            return amount / price
+
+        else:
+            # Default to fixed
+            amount = equity * self.config.max_position_size
+            return amount / price
