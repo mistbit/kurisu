@@ -16,6 +16,7 @@ from app.services.exchange import ExchangeService, MarketService
 from app.scheduler import start_scheduler, shutdown_scheduler
 from app.api.v1 import sync, auth
 from app.api.v1.websocket import router as websocket_router
+from app.api.v1.backtest import router as backtest_router
 from app.services.ohlcv_stream import ohlcv_stream_service
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ app = FastAPI(
 # Include API routers
 app.include_router(sync.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(backtest_router, prefix="/api/v1")
 app.include_router(websocket_router)
 
 @app.get("/health", status_code=status.HTTP_200_OK)
