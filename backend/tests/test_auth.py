@@ -1,12 +1,9 @@
 """Tests for authentication API endpoints."""
 import pytest
-from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.account import User, APIKey
 from app.services.auth import (
     get_password_hash,
     verify_password,
@@ -321,7 +318,7 @@ async def test_get_me_unauthenticated(async_client: AsyncClient):
 async def test_get_me_with_token(async_client: AsyncClient, db_session: AsyncSession):
     """Test getting current user info with valid token."""
     user_service = UserService(db_session)
-    user = await user_service.create_user(
+    await user_service.create_user(
         username="meuser",
         email="me@example.com",
         password="password123",
@@ -345,7 +342,7 @@ async def test_get_me_with_token(async_client: AsyncClient, db_session: AsyncSes
 async def test_create_api_key_endpoint(async_client: AsyncClient, db_session: AsyncSession):
     """Test API key creation endpoint."""
     user_service = UserService(db_session)
-    user = await user_service.create_user(
+    await user_service.create_user(
         username="apikeyuser",
         email="apikey@example.com",
         password="password123",

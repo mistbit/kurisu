@@ -4,7 +4,6 @@ This strategy generates buy signals when the short MA crosses above the long MA,
 and sell signals when it crosses below.
 """
 from typing import Optional
-from datetime import datetime
 
 from app.strategy.base import (
     BaseStrategy,

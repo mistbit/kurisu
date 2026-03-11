@@ -35,7 +35,7 @@ def get_test_metadata():
     metadata = MetaData()
 
     # Users table
-    users = Table(
+    Table(
         'users', metadata,
         Column('id', Integer, primary_key=True),
         Column('username', String(50), unique=True, nullable=False),
@@ -48,7 +48,7 @@ def get_test_metadata():
     )
 
     # API Keys table
-    api_keys = Table(
+    Table(
         'api_keys', metadata,
         Column('id', Integer, primary_key=True),
         Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
@@ -62,7 +62,7 @@ def get_test_metadata():
     )
 
     # Markets table with JSON instead of JSONB
-    markets = Table(
+    Table(
         'markets', metadata,
         Column('id', Integer, primary_key=True),
         Column('exchange', String(50), nullable=False),
@@ -77,7 +77,7 @@ def get_test_metadata():
     )
 
     # OHLCV table
-    ohlcv = Table(
+    Table(
         'ohlcv', metadata,
         Column('time', DateTime(timezone=True), primary_key=True),
         Column('market_id', Integer, ForeignKey('markets.id'), primary_key=True),
@@ -90,7 +90,7 @@ def get_test_metadata():
     )
 
     # DataSyncState table
-    data_sync_state = Table(
+    Table(
         'data_sync_state', metadata,
         Column('id', Integer, primary_key=True),
         Column('market_id', Integer, ForeignKey('markets.id'), nullable=True),
@@ -185,11 +185,12 @@ async def async_client(override_get_db, mock_redis) -> AsyncGenerator[AsyncClien
     """Create an async HTTP client for testing FastAPI endpoints."""
     # Patch redis_client globally
     with patch('app.core.redis.redis_client', mock_redis):
-        with patch('app.api.v1.sync.redis_client', mock_redis):
-            with patch('app.services.sync_state_service.redis_client', mock_redis):
-                transport = ASGITransport(app=app)
-                async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    yield client
+        with patch('app.main.redis_client', mock_redis):
+            with patch('app.api.v1.sync.redis_client', mock_redis):
+                with patch('app.services.sync_state_service.redis_client', mock_redis):
+                    transport = ASGITransport(app=app)
+                    async with AsyncClient(transport=transport, base_url="http://test") as client:
+                        yield client
 
 
 # Disable scheduler for tests

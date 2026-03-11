@@ -9,12 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import (
-    get_current_user,
     get_authenticated_user,
     require_superuser,
     check_rate_limit,
 )
-from app.models.account import User, APIKey
+from app.models.account import User
 from app.services.auth import create_access_token
 from app.services.user_service import UserService
 

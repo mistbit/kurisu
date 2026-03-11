@@ -7,10 +7,9 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.sync_state import DataSyncState, SyncStatus
+from app.models.sync_state import DataSyncState
 from app.api.v1.sync import (
     _run_backfill_task,
-    TASK_STATUS_PREFIX,
 )
 
 
@@ -159,7 +158,6 @@ async def test_backfill_task_status_endpoint(async_client: AsyncClient, mock_red
     """Test the backfill task status endpoint."""
     # Create a task status in Redis
     task_id = "test_status_001"
-    task_key = f"{TASK_STATUS_PREFIX}:{task_id}"
     task_status = {
         "task_id": task_id,
         "status": "running",

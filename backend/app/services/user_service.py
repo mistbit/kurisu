@@ -1,5 +1,4 @@
 """User management service."""
-import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -173,7 +172,7 @@ class UserService:
         """
         # Get all active API keys and check against hash
         result = await self.db.execute(
-            select(APIKey).where(APIKey.is_active == True)
+            select(APIKey).where(APIKey.is_active.is_(True))
         )
         api_keys = result.scalars().all()
 

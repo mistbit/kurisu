@@ -3,11 +3,10 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.sync_state import DataSyncState, SyncStatus
-from app.models.market import OHLCV, Market
+from app.models.sync_state import DataSyncState
+from app.models.market import OHLCV
 from app.scheduler.jobs import _detect_gaps, _trigger_gap_backfill
 
 
