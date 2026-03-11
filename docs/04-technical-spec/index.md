@@ -8,3 +8,5 @@
 - [Redis 调研 (Research)](redis-research.md) / [中文版](redis-research-zh.md)
 - [数据库模式设计](database-schema-design-zh.md)
 - [ORM 模型实现方案](orm-model-implementation-zh.md)
+- [调度器系统设计](scheduler-system-design-zh.md)
+- [策略与回测引擎设计](backtest-engine-design-zh.md)
