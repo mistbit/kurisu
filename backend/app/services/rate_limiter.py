@@ -1,5 +1,4 @@
 """Rate limiting service using Redis."""
-import json
 import time
 from typing import Optional, Tuple
 

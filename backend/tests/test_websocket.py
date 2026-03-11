@@ -1,11 +1,9 @@
 """Tests for WebSocket functionality."""
-import asyncio
 import json
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock
 
-from app.api.v1.websocket import ConnectionManager, manager
+from app.api.v1.websocket import ConnectionManager
 
 
 @pytest.mark.asyncio

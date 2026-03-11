@@ -2,7 +2,7 @@
 
 > 生成日期：2026-03-11  
 > 代码统计：后端应用 5,993 行 | 测试 2,046 行 | 前端 3,469 行 | 数据库迁移 523 行  
-> 测试状态：70 passed, 1 failed, 1 skipped
+> 测试状态：71 passed, 0 failed, 1 skipped
 
 ---
 
@@ -50,7 +50,7 @@
 | Phase 2.5 | 安全与鉴权 | ✅ 已完成 | 100% |
 | Phase 3 | AI Agent 集成 | ❌ 未开始 | 0% |
 | Phase 4 | 实盘交易与风控 | ❌ 未开始 | 0% |
-| 前端仪表盘 | Dashboard UI | 🔄 进行中 | ~60% |
+| 前端仪表盘 | Dashboard UI | 🔄 进行中 | ~65% |
 
 ---
 
@@ -262,6 +262,7 @@
 | 首页重定向 | `/` → `/login` | ✅ 完成 | 自动跳转到登录页 |
 | 认证布局 | `(auth)/layout.tsx` | ✅ 完成 | 渐变背景、网格装饰、已登录用户自动跳转 |
 | 登录页 | `(auth)/login/page.tsx` | ✅ 完成 | 表单、Zustand 存储 token、错误 toast、加载状态 |
+| 注册页 | `(auth)/register/page.tsx` | ✅ 完成 | 用户名/邮箱/密码/确认密码表单，注册成功跳转登录 |
 | 仪表盘布局 | `(dashboard)/layout.tsx` | ✅ 完成 | 侧边栏导航（Markets/Charts/Backtest）、用户信息、登出、响应式 |
 | 市场浏览 | `(dashboard)/markets/page.tsx` | ✅ 完成 | 搜索过滤、交易所筛选、同步按钮、卡片展示、点击跳转 Chart |
 | K 线图表 | `(dashboard)/chart/page.tsx` | ✅ 完成 | Recharts OHLC 图表、7 种时间框架、WebSocket 实时更新 |
@@ -271,7 +272,7 @@
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| 注册页面 | ❌ 未实现 | 登录页有链接入口，但 `/register` 页面不存在 |
+| 注册页面 | ✅ 已实现 | 用户名/邮箱/密码/确认密码表单，注册成功跳转登录页 |
 | 自定义 Hooks | ⚠️ 空目录 | `src/hooks/` 目录存在但无内容 |
 | 错误边界 | ❌ 未实现 | 无 React Error Boundary 处理运行时错误 |
 | 回测结果可视化 | ⚠️ 可能不完整 | 权益曲线图表、交易列表等展示未确认 |
@@ -285,7 +286,7 @@
 ### 5.1 测试概览
 
 ```
-运行结果：70 passed, 1 failed, 1 skipped, 2 warnings (11.35s)
+运行结果：71 passed, 0 failed, 1 skipped, 2 warnings (11.11s)
 ```
 
 | 测试文件 | 覆盖范围 | 状态 |
@@ -294,7 +295,7 @@
 | `test_auth.py` | 认证、用户创建、Token、API Key | ✅ 通过 |
 | `test_backtest.py` | 回测引擎、策略、交易所模拟器 | ✅ 通过 |
 | `test_rate_limiter.py` | 速率限制（禁用/启用/Redis 故障） | ✅ 通过（1 warning） |
-| `test_sync_integration.py` | SyncStateService、同步状态操作、批量操作 | ⚠️ 1 失败 |
+| `test_sync_integration.py` | SyncStateService、同步状态操作、批量操作 | ✅ 通过 |
 | `test_gap_detection.py` | 缺口检测算法、缺口场景 | ✅ 通过 |
 | `test_websocket.py` | WebSocket 连接管理器、广播 | ✅ 通过 |
 | `test_backfill_task.py` | 回填任务执行 | ✅ 通过（1 warning） |
@@ -308,18 +309,7 @@
 - FastAPI `dependency_overrides` 实现依赖注入
 - `conftest.py` 提供统一的 fixture
 
-### 5.3 失败测试详情
-
-**`test_health_check_with_client`** — `test_sync_integration.py:135`
-
-```
-assert response.status_code == 200
-assert 503 == 200
-```
-
-**原因：** 测试环境 Redis 连接失败 (`Event loop is closed`)，健康检查返回 503。属于测试环境 event loop 管理问题，非业务逻辑 bug。
-
-### 5.4 测试缺失
+### 5.3 测试缺失
 
 | 缺失测试 | 重要性 | 说明 |
 |----------|--------|------|
@@ -336,17 +326,10 @@ assert 503 == 200
 ### 6.1 Ruff 检查结果
 
 ```
-Found 70 errors (51 fixable with --fix)
+All checks passed!
 ```
 
-| 错误类型 | 数量 | 说明 |
-|----------|------|------|
-| `F401` | 51 | 未使用的导入（可自动修复） |
-| `F811` | 7 | 变量重定义（测试文件中 `manager` 重定义） |
-| `F841` | 8 | 赋值后未使用的局部变量 |
-| `E712` | 1 | 避免与 `True` 的相等比较（使用 `if x:` 代替 `if x == True`）|
-
-**评估：** 绝大多数（51/70）是未使用导入的警告，可通过 `ruff check --fix` 一键修复。其余为测试代码中的轻微问题，不影响业务逻辑。
+所有 lint 问题已修复（未使用导入、未使用变量、`== True` 比较等），代码质量达标。
 
 ### 6.2 代码优点
 
@@ -376,9 +359,9 @@ Found 70 errors (51 fixable with --fix)
 
 | # | 问题 | 类型 | 影响 | 建议 |
 |---|------|------|------|------|
-| 1 | **测试失败** — `test_health_check_with_client` 因 event loop 管理失败 | Bug | 测试可靠性 | 修复测试中 Redis mock 的 event loop 管理 |
-| 2 | **70 个 ruff 告警** — 大量未使用导入 | 代码质量 | 代码整洁度 | 运行 `ruff check --fix .` 自动修复 |
-| 3 | **注册页面缺失** — 前端无 `/register` 页面 | 功能缺失 | 新用户无法自助注册 | 实现注册页面 |
+| 1 | ~~**测试失败**~~ | ~~Bug~~ | ~~测试可靠性~~ | ✅ 已修复：补充 `app.main.redis_client` mock |
+| 2 | ~~**70 个 ruff 告警**~~ | ~~代码质量~~ | ~~代码整洁度~~ | ✅ 已修复：All checks passed |
+| 3 | ~~**注册页面缺失**~~ | ~~功能缺失~~ | ~~新用户无法自助注册~~ | ✅ 已实现：`(auth)/register/page.tsx` |
 | 4 | **前端无测试** — 完全没有前端自动化测试 | 测试缺失 | 质量保障不足 | 添加 Jest/Vitest + Testing Library |
 
 ### 7.2 中优先级问题
@@ -465,7 +448,7 @@ Found 70 errors (51 fixable with --fix)
 - [x] 市场浏览页（搜索/过滤/同步）
 - [x] K 线图表页（OHLCV + WebSocket）
 - [x] 回测页面配置面板
-- [ ] 注册页面
+- [x] 注册页面
 - [ ] 回测结果完整展示
 - [ ] 同步状态管理页
 - [ ] 调度器监控页
@@ -477,9 +460,9 @@ Found 70 errors (51 fixable with --fix)
 
 ### 立即可做（低成本高收益）
 
-1. **执行 `ruff check --fix .`** — 一键修复 51 个未使用导入告警
-2. **修复 `test_health_check_with_client`** — 调整测试中 Redis mock 的 event loop 管理
-3. **实现注册页面** — 已有 API 和类型定义，只需前端页面
+1. ~~**执行 `ruff check --fix .`**~~ — ✅ 已完成
+2. ~~**修复 `test_health_check_with_client`**~~ — ✅ 已完成
+3. ~~**实现注册页面**~~ — ✅ 已完成
 
 ### 短期改进
 

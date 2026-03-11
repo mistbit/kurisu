@@ -4,11 +4,9 @@ import json
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Optional
 from weakref import WeakSet
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 

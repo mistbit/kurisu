@@ -7,7 +7,6 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
-from decimal import Decimal
 
 from app.strategy.base import (
     Position,

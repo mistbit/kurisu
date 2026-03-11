@@ -15,7 +15,6 @@ from app.services.exchange import MarketDataService
 from app.scheduler.jobs import _get_exchange_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from apscheduler.jobstores.redis import RedisJobStore
-from apscheduler.jobstores.memory import MemoryJobStore
 
 logger = logging.getLogger(__name__)
 

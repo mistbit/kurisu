@@ -3,13 +3,12 @@
 These tests use SQLite test database with mocked Redis.
 """
 import pytest
-from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+from datetime import datetime, timezone
+from unittest.mock import patch
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.sync_state import DataSyncState, SyncStatus
+from app.models.sync_state import SyncStatus
 
 
 @pytest.mark.asyncio

@@ -5,20 +5,15 @@ strategy execution against historical data.
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Optional, Any, Generator
+from datetime import datetime
+from typing import Optional, Generator
 from collections import defaultdict
 
 from app.strategy.base import (
     BaseStrategy,
     OHLCVBar,
-    Signal,
-    StrategyConfig,
-    Position,
-    SignalType,
-    OrderSide,
 )
-from app.strategy.exchange_sim import ExchangeSimulator, Trade
+from app.strategy.exchange_sim import ExchangeSimulator
 
 logger = logging.getLogger(__name__)
 

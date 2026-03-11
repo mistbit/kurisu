@@ -1,5 +1,4 @@
 """Authentication dependencies for FastAPI."""
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status

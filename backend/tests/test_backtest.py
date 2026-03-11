@@ -1,19 +1,13 @@
 """Tests for backtest engine and strategies."""
-import pytest
 from datetime import datetime, timedelta
 
 from app.strategy.base import (
-    BaseStrategy,
-    StrategyConfig,
     OHLCVBar,
-    Signal,
-    SignalType,
     OrderSide,
 )
 from app.strategy.exchange_sim import ExchangeSimulator
 from app.strategy.backtest import (
     BacktestEngine,
-    BacktestResult,
     PerformanceCalculator,
 )
 from app.strategy.examples import (
@@ -97,7 +91,7 @@ class TestExchangeSimulator:
         )
 
         # Submit buy order
-        order = exchange.submit_order(
+        exchange.submit_order(
             symbol="TEST",
             side=OrderSide.BUY,
             quantity=10,
