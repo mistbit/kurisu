@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { dataApi, getWSUrl } from '@/lib/api';
+import { dataApi, getWSUrl, normalizeOhlcvTuple } from '@/lib/api';
 import type { OHLCV } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Activity, Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Loader2, Activity, Clock, TrendingUp, TrendingDown, FlaskConical } from 'lucide-react';
 import {
   ComposedChart,
   XAxis,
@@ -22,7 +22,57 @@ import {
 import { format } from 'date-fns';
 import { TIMEFRAMES_SHORT } from '@/lib/constants';
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: OHLCV & { timeStr: string } }> }) {
+type ChartCandle = OHLCV & { timeStr: string };
+
+const RANGE_PRESETS = [
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: '90D', days: 90 },
+] as const;
+
+function formatDateInput(value: Date) {
+  return value.toISOString().split('T')[0];
+}
+
+function defaultRangeStart(days: number) {
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  return formatDateInput(start);
+}
+
+function defaultRangeEnd() {
+  return formatDateInput(new Date());
+}
+
+function parseDateInput(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : formatDateInput(date);
+}
+
+function toRangeStartIso(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
+
+function toRangeEndIso(value: string) {
+  return new Date(`${value}T23:59:59.999Z`).toISOString();
+}
+
+function formatCandle(candle: OHLCV): ChartCandle {
+  return {
+    ...candle,
+    timeStr: format(new Date(candle.time), 'yyyy-MM-dd HH:mm'),
+  };
+}
+
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartCandle }> }) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -48,43 +98,85 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 export default function ChartPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const wsRef = useRef<WebSocket | null>(null);
 
   const marketId = searchParams.get('market_id');
   const symbol = searchParams.get('symbol') || '';
   const exchange = searchParams.get('exchange') || '';
+  const requestedTimeframe = searchParams.get('timeframe');
+  const requestedStartTime = searchParams.get('start_time');
+  const requestedEndTime = searchParams.get('end_time');
 
-  const [timeframe, setTimeframe] = useState('1h');
-  const [data, setData] = useState<Array<OHLCV & { timeStr: string }>>([]);
+  const [timeframe, setTimeframe] = useState(
+    requestedTimeframe && TIMEFRAMES_SHORT.some((option) => option.value === requestedTimeframe)
+      ? requestedTimeframe
+      : '1h',
+  );
+  const [startDate, setStartDate] = useState(
+    parseDateInput(requestedStartTime) ?? defaultRangeStart(30),
+  );
+  const [endDate, setEndDate] = useState(
+    parseDateInput(requestedEndTime) ?? defaultRangeEnd(),
+  );
+  const [data, setData] = useState<ChartCandle[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
 
+  const handleOpenBacktest = useCallback(() => {
+    if (!marketId) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      market_id: marketId,
+      timeframe,
+    });
+
+    if (symbol) {
+      params.set('symbol', symbol);
+    }
+
+    params.set('start_date', startDate);
+    params.set('end_date', endDate);
+
+    router.push(`/backtest?${params.toString()}`);
+  }, [endDate, marketId, router, startDate, symbol, timeframe]);
+
+  useEffect(() => {
+    if (requestedTimeframe && TIMEFRAMES_SHORT.some((option) => option.value === requestedTimeframe)) {
+      setTimeframe(requestedTimeframe);
+    }
+    const parsedStartDate = parseDateInput(requestedStartTime);
+    const parsedEndDate = parseDateInput(requestedEndTime);
+
+    if (parsedStartDate) {
+      setStartDate(parsedStartDate);
+    }
+
+    if (parsedEndDate) {
+      setEndDate(parsedEndDate);
+    }
+  }, [requestedEndTime, requestedStartTime, requestedTimeframe]);
+
   const fetchData = useCallback(async () => {
     if (!marketId) return;
+    if (startDate > endDate) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
-      const endTime = Date.now();
-      const startTime = endTime - 30 * 24 * 60 * 60 * 1000; // 30 days
-
       const { data: ohlcvData } = await dataApi.getOHLCV({
         market_id: parseInt(marketId),
         timeframe,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: toRangeStartIso(startDate),
+        end_time: toRangeEndIso(endDate),
         limit: 500,
       });
 
-      const formatted = ohlcvData.map((item) => ({
-        time: item[0],
-        open: item[1],
-        high: item[2],
-        low: item[3],
-        close: item[4],
-        volume: item[5],
-        timeStr: format(new Date(item[0]), 'yyyy-MM-dd HH:mm'),
-      }));
+      const formatted = ohlcvData.map(formatCandle);
 
       setData(formatted);
 
@@ -99,7 +191,7 @@ export default function ChartPage() {
     } finally {
       setLoading(false);
     }
-  }, [marketId, timeframe]);
+  }, [endDate, marketId, startDate, timeframe]);
 
   useEffect(() => {
     fetchData();
@@ -109,30 +201,22 @@ export default function ChartPage() {
   useEffect(() => {
     if (!marketId || !timeframe) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/ohlcv?market_id=${marketId}&timeframe=${timeframe}`;
-
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    const ws = new WebSocket(
+      getWSUrl(`/ws/data/ohlcv?market_id=${marketId}&timeframe=${timeframe}`)
+    );
 
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.type === 'ohlcv') {
-          const candle = message.data as OHLCV;
+        if (message.type === 'ohlcv_update' && Array.isArray(message.data)) {
+          const candle = normalizeOhlcvTuple(message.data);
           setData((prev) => {
             const newData = [...prev];
             const lastIndex = newData.length - 1;
             if (lastIndex >= 0 && newData[lastIndex].time === candle.time) {
-              newData[lastIndex] = {
-                ...candle,
-                timeStr: format(new Date(candle.time), 'yyyy-MM-dd HH:mm'),
-              };
+              newData[lastIndex] = formatCandle(candle);
             } else {
-              newData.push({
-                ...candle,
-                timeStr: format(new Date(candle.time), 'yyyy-MM-dd HH:mm'),
-              });
+              newData.push(formatCandle(candle));
             }
             if (newData.length > 500) newData.shift();
             return newData;
@@ -183,7 +267,15 @@ export default function ChartPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={handleOpenBacktest}
+            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            <FlaskConical className="w-4 h-4 mr-2" />
+            Backtest This Market
+          </Button>
           {TIMEFRAMES_SHORT.map((tf) => (
             <Button
               key={tf.value}
@@ -201,6 +293,47 @@ export default function ChartPage() {
           ))}
         </div>
       </div>
+
+      <Card className="bg-slate-900 border-slate-800">
+        <CardContent className="flex flex-col gap-4 pt-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {RANGE_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartDate(defaultRangeStart(preset.days));
+                  setEndDate(defaultRangeEnd());
+                }}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm text-slate-400">
+              Start Date
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-400">
+              End Date
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </label>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Chart */}
       <Card className="bg-slate-900 border-slate-800">
@@ -222,6 +355,10 @@ export default function ChartPage() {
           {loading ? (
             <div className="flex items-center justify-center h-[500px]">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+            </div>
+          ) : startDate > endDate ? (
+            <div className="flex items-center justify-center h-[500px]">
+              <p className="text-slate-400">Start date must be on or before end date</p>
             </div>
           ) : data.length === 0 ? (
             <div className="flex items-center justify-center h-[500px]">

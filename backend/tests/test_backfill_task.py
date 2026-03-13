@@ -28,13 +28,14 @@ async def test_backfill_endpoint(async_client: AsyncClient, db_session: AsyncSes
     await db_session.commit()
 
     # Trigger backfill
-    response = await async_client.post(
-        "/api/v1/data/backfill",
-        json={
-            "market_ids": [1],
-            "timeframes": ["1h"],
-        },
-    )
+    with patch("app.api.v1.sync._run_backfill_task", new=AsyncMock()):
+        response = await async_client.post(
+            "/api/v1/data/backfill",
+            json={
+                "market_ids": [1],
+                "timeframes": ["1h"],
+            },
+        )
 
     assert response.status_code == 200
     data = response.json()
@@ -74,13 +75,14 @@ async def test_backfill_endpoint_symbol_pattern(async_client: AsyncClient, db_se
     await db_session.commit()
 
     # Trigger backfill with pattern
-    response = await async_client.post(
-        "/api/v1/data/backfill",
-        json={
-            "symbol_pattern": "BTC",
-            "timeframes": ["1h"],
-        },
-    )
+    with patch("app.api.v1.sync._run_backfill_task", new=AsyncMock()):
+        response = await async_client.post(
+            "/api/v1/data/backfill",
+            json={
+                "symbol_pattern": "BTC",
+                "timeframes": ["1h"],
+            },
+        )
 
     assert response.status_code == 200
     data = response.json()

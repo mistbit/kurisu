@@ -273,6 +273,11 @@ class BacktestEngine:
         self._data[symbol] = sorted(bars, key=lambda b: b.time)
         self._current_idx[symbol] = 0
 
+    def _sync_strategy_state(self) -> None:
+        """Mirror simulator state back into the strategy before each decision."""
+        self.strategy.state.cash = self.exchange.cash
+        self.strategy.state.positions = self.exchange.get_all_positions()
+
     def load_data_from_dict(
         self,
         symbol: str,
@@ -337,6 +342,7 @@ class BacktestEngine:
 
         # Reset exchange
         self.exchange.reset()
+        self._sync_strategy_state()
 
         # Track equity curve
         equity_curve: list[tuple[datetime, float]] = []
@@ -344,6 +350,8 @@ class BacktestEngine:
 
         # Process each bar
         for time, symbol, bar in self._iterate_bars():
+            self._sync_strategy_state()
+
             # Filter by date range
             if start_date and bar.time < start_date:
                 continue
@@ -355,6 +363,7 @@ class BacktestEngine:
 
             # Process any pending orders
             trades = self.exchange.process_bar(bar, symbol)
+            self._sync_strategy_state()
 
             # Process signal if generated
             if signal:

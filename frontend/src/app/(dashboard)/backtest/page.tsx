@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { marketsApi, backtestApi } from '@/lib/api';
 import type { BacktestResult, Market } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Play, TrendingUp, TrendingDown, Target, BarChart3 } from 'lucide-react';
+import { Loader2, Play, Target, BarChart3, Activity } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -44,18 +45,58 @@ const TIMEFRAMES = [
   { value: '1d', label: '1 day' },
 ];
 
+function isValidDateInput(value: string | null): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function normalizeDateInput(value: string | null): string {
+  if (isValidDateInput(value)) {
+    return value;
+  }
+
+  return '';
+}
+
+function getDefaultDateRange() {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now);
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  return {
+    startDate: threeMonthsAgo.toISOString().split('T')[0],
+    endDate: now.toISOString().split('T')[0],
+  };
+}
+
+function toChartStartTime(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
+
+function toChartEndTime(value: string) {
+  return new Date(`${value}T23:59:59.999Z`).toISOString();
+}
+
 export default function BacktestPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedMarketId = searchParams.get('market_id') ?? '';
+  const requestedTimeframe = searchParams.get('timeframe');
+  const requestedStartDate = searchParams.get('start_date');
+  const requestedEndDate = searchParams.get('end_date');
   const [markets, setMarkets] = useState<Market[]>([]);
-  const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
 
   // Form state
-  const [symbol, setSymbol] = useState('');
+  const [selectedMarketId, setSelectedMarketId] = useState<string>(requestedMarketId);
   const [strategy, setStrategy] = useState('ma_crossover');
-  const [timeframe, setTimeframe] = useState('1h');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [timeframe, setTimeframe] = useState<string>(
+    requestedTimeframe && TIMEFRAMES.some((option) => option.value === requestedTimeframe)
+      ? requestedTimeframe
+      : '1h',
+  );
+  const [startDate, setStartDate] = useState<string>(normalizeDateInput(requestedStartDate));
+  const [endDate, setEndDate] = useState<string>(normalizeDateInput(requestedEndDate));
   const [initialBalance, setInitialBalance] = useState('10000');
 
   // Strategy params
@@ -63,16 +104,41 @@ export default function BacktestPage() {
   const [slowPeriod, setSlowPeriod] = useState('20');
   const [rsiPeriod, setRsiPeriod] = useState('14');
 
+  const selectedMarket = markets.find((market) => market.id.toString() === selectedMarketId);
+
   useEffect(() => {
-    // Set default dates
-    const now = new Date();
-    const threeMonthsAgo = new Date(now);
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    if (requestedMarketId) {
+      setSelectedMarketId(requestedMarketId);
+    }
 
-    setEndDate(now.toISOString().split('T')[0]);
-    setStartDate(threeMonthsAgo.toISOString().split('T')[0]);
+    if (requestedTimeframe && TIMEFRAMES.some((option) => option.value === requestedTimeframe)) {
+      setTimeframe(requestedTimeframe);
+    }
 
-    // Fetch markets
+    if (isValidDateInput(requestedStartDate)) {
+      setStartDate(requestedStartDate);
+    }
+
+    if (isValidDateInput(requestedEndDate)) {
+      setEndDate(requestedEndDate);
+    }
+  }, [requestedEndDate, requestedMarketId, requestedStartDate, requestedTimeframe, searchParams]);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      return;
+    }
+
+    const defaults = getDefaultDateRange();
+    if (!startDate) {
+      setStartDate(defaults.startDate);
+    }
+    if (!endDate) {
+      setEndDate(defaults.endDate);
+    }
+  }, [endDate, startDate]);
+
+  useEffect(() => {
     marketsApi
       .list({ limit: 50 })
       .then((res) => setMarkets(res.data.items))
@@ -80,7 +146,7 @@ export default function BacktestPage() {
   }, []);
 
   const handleRunBacktest = async () => {
-    if (!symbol || !startDate || !endDate) {
+    if (!selectedMarket || !startDate || !endDate) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -90,7 +156,8 @@ export default function BacktestPage() {
 
     try {
       const { data } = await backtestApi.run({
-        symbol,
+        market_id: selectedMarket.id,
+        symbol: selectedMarket.symbol,
         strategy,
         start_date: startDate,
         end_date: endDate,
@@ -113,6 +180,24 @@ export default function BacktestPage() {
     }
   };
 
+  const handleOpenChart = () => {
+    if (!selectedMarket || !startDate || !endDate) {
+      toast.error('Select a market and date range first');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      market_id: selectedMarket.id.toString(),
+      symbol: selectedMarket.symbol,
+      exchange: selectedMarket.exchange,
+      timeframe,
+      start_time: toChartStartTime(startDate),
+      end_time: toChartEndTime(endDate),
+    });
+
+    router.push(`/chart?${params.toString()}`);
+  };
+
   const equityCurve = result?.equity_curve.map((value, index) => ({
     time: index,
     value,
@@ -120,9 +205,20 @@ export default function BacktestPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Backtest</h1>
-        <p className="text-slate-400">Test your trading strategies with historical data</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Backtest</h1>
+          <p className="text-slate-400">Test your trading strategies with historical data</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleOpenChart}
+          disabled={!selectedMarket}
+          className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+        >
+          <Activity className="w-4 h-4 mr-2" />
+          Open in Chart
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -136,15 +232,15 @@ export default function BacktestPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Symbol</Label>
-              <Select value={symbol} onValueChange={(v) => v && setSymbol(v)}>
+              <Label className="text-slate-300">Market</Label>
+              <Select value={selectedMarketId} onValueChange={(value) => value && setSelectedMarketId(value)}>
                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                   <SelectValue placeholder="Select market" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-700">
                   {markets.map((m) => (
-                    <SelectItem key={m.id} value={m.symbol} className="text-white">
-                      {m.symbol}
+                    <SelectItem key={m.id} value={m.id.toString()} className="text-white">
+                      {m.symbol} ({m.exchange})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -411,7 +507,7 @@ export default function BacktestPage() {
                             <TableCell>
                               <Badge
                                 className={
-                                  trade.side === 'long'
+                                  trade.side === 'long' || trade.side === 'buy'
                                     ? 'bg-emerald-500/10 text-emerald-400'
                                     : 'bg-red-500/10 text-red-400'
                                 }

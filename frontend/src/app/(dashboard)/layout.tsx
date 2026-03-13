@@ -1,6 +1,5 @@
 'use client';
 
-import { redirect } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/auth-store';
 import { authApi } from '@/lib/api';
@@ -8,13 +7,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Clock,
   LayoutDashboard,
   LineChart,
   FlaskConical,
-  Settings,
   LogOut,
   Menu,
-  X,
+  RefreshCw,
   Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,8 @@ const navItems = [
   { href: '/markets', label: 'Markets', icon: LayoutDashboard },
   { href: '/chart', label: 'Charts', icon: LineChart },
   { href: '/backtest', label: 'Backtest', icon: FlaskConical },
+  { href: '/sync', label: 'Sync', icon: RefreshCw },
+  { href: '/scheduler', label: 'Scheduler', icon: Clock },
 ];
 
 export default function DashboardLayout({

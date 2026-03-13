@@ -32,7 +32,7 @@ async def test_rate_limiter_redis_failure():
         mock_pipeline.expire.return_value = None
         # Make execute raise an exception
         mock_pipeline.execute = AsyncMock(side_effect=Exception("Redis connection failed"))
-        mock_redis.pipeline.return_value = mock_pipeline
+        mock_redis.pipeline = MagicMock(return_value=mock_pipeline)
 
         allowed, info = await limiter.is_allowed("test_user")
 
