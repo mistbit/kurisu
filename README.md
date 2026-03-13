@@ -87,7 +87,7 @@ See [Architecture Design](docs/02-architecture/overview.md) for details.
 - [Architecture Design](docs/02-architecture/overview.md) - System architecture and module design
 - [Tech Stack Rationale](docs/04-technical-spec/tech-stack.md) - Technology choices and rationale
 - [Agent Architecture](docs/02-architecture/agent-logic.md) - Deep dive into AI agent design
-- [Dashboard Workflow Guide](docs/03-user-guide/dashboard.md) - Navigate between markets, charts, and backtests
+- [Dashboard Workflow Guide](docs/03-user-guide/dashboard.md) - Navigate between markets, charts, and backtests with shareable chart URLs
 
 ## 🚀 Getting Started
 
