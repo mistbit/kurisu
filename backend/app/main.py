@@ -1,10 +1,10 @@
 import logging
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Body, Depends, FastAPI, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import asc, desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -181,28 +181,43 @@ async def get_market(market_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
-async def get_exchange_service(
-    exchange_id: str = "binance",
-) -> AsyncGenerator[ExchangeService, None]:
-    service = ExchangeService(exchange_id)
-    await service.initialize()
-    try:
-        yield service
-    finally:
-        await service.close()
+class MarketSyncRequest(BaseModel):
+    exchanges: Optional[list[str]] = None
+    quote_allowlist: Optional[list[str]] = None
+    quote_denylist: Optional[list[str]] = None
 
 
 @app.post("/api/v1/markets/sync", status_code=status.HTTP_200_OK)
 async def sync_markets(
-    quote_allowlist: Optional[list[str]] = None,
-    quote_denylist: Optional[list[str]] = None,
-    exchange_service: ExchangeService = Depends(get_exchange_service),
+    request: MarketSyncRequest = Body(default_factory=MarketSyncRequest),
     db: AsyncSession = Depends(get_db),
 ):
-    market_service = MarketService(exchange_service, db)
-    synced = await market_service.sync_markets(
-        quote_allowlist=quote_allowlist, quote_denylist=quote_denylist
-    )
+    exchanges = request.exchanges or settings.EXCHANGES
+    if not exchanges:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one exchange must be provided",
+        )
+
+    synced = 0
+    for exchange_id in exchanges:
+        exchange_service = ExchangeService(exchange_id)
+        try:
+            await exchange_service.initialize()
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+        try:
+            market_service = MarketService(exchange_service, db)
+            synced += await market_service.sync_markets(
+                quote_allowlist=request.quote_allowlist,
+                quote_denylist=request.quote_denylist,
+            )
+        finally:
+            await exchange_service.close()
+
     return {"synced": synced}
 
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { marketsApi } from '@/lib/api';
 import type { Market } from '@/lib/types';
@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { EXCHANGES, TIMEFRAMES_WITH_LABELS } from '@/lib/constants';
-import { debounce } from '@/lib/utils';
+import { EXCHANGES } from '@/lib/constants';
 
 export default function MarketsPage() {
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -43,7 +42,7 @@ export default function MarketsPage() {
 
       const { data } = await marketsApi.list(params);
       setMarkets(data.items);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch markets');
     } finally {
       setLoading(false);
@@ -62,7 +61,7 @@ export default function MarketsPage() {
       });
       toast.success(data.message);
       fetchMarkets();
-    } catch (error) {
+    } catch {
       toast.error('Sync failed');
     } finally {
       setSyncLoading(false);
@@ -169,11 +168,11 @@ export default function MarketsPage() {
                 <div className="mt-3 flex items-center gap-4 text-sm">
                   <div className="flex items-center text-slate-400">
                     <TrendingUp className="w-4 h-4 mr-1" />
-                    {market.precision_price}
+                    {market.price_precision ?? '-'}
                   </div>
                   <div className="flex items-center text-slate-400">
                     <TrendingDown className="w-4 h-4 mr-1" />
-                    {market.precision_quantity}
+                    {market.amount_precision ?? '-'}
                   </div>
                 </div>
               </CardContent>

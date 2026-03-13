@@ -5,4 +5,4 @@
 ## 文档列表
 - [策略编辑器使用说明](strategy-editor.md) (待补充)
 - [回测系统指南](backtest-engine.md) (待补充)
-- [仪表盘监控说明](dashboard.md) (待补充)
+- [仪表盘工作流指南](dashboard.md)

@@ -10,6 +10,7 @@ greenlet
 ruff
 aiosqlite
 pytest
+pytest-asyncio
 httpx
 apscheduler[redis]
 python-jose[cryptography]

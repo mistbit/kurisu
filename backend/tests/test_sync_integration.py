@@ -135,3 +135,67 @@ async def test_health_check_with_client(async_client):
 
     data = response.json()
     assert data["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_markets_sync_filters_requested_exchanges(async_client):
+    """Test market sync endpoint loops over requested exchanges only."""
+
+    synced_counts = {
+        "binance": 3,
+        "bybit": 2,
+    }
+
+    class DummyExchangeService:
+        def __init__(self, exchange_id: str):
+            self.exchange_id = exchange_id
+
+        async def initialize(self):
+            return None
+
+        async def close(self):
+            return None
+
+    async def fake_sync_markets(self, quote_allowlist=None, quote_denylist=None):
+        assert quote_allowlist == ["USDT"]
+        assert quote_denylist is None
+        return synced_counts[self.exchange_service.exchange_id]
+
+    with patch("app.main.ExchangeService", DummyExchangeService):
+        with patch("app.main.MarketService.sync_markets", new=fake_sync_markets):
+            response = await async_client.post(
+                "/api/v1/markets/sync",
+                json={
+                    "exchanges": ["binance", "bybit"],
+                    "quote_allowlist": ["USDT"],
+                },
+            )
+
+    assert response.status_code == 200
+    assert response.json() == {"synced": 5}
+
+
+@pytest.mark.asyncio
+async def test_markets_sync_rejects_unsupported_exchange(async_client):
+    """Test market sync endpoint returns 400 for unsupported exchanges."""
+
+    class DummyExchangeService:
+        def __init__(self, exchange_id: str):
+            self.exchange_id = exchange_id
+
+        async def initialize(self):
+            raise ValueError(f"Exchange {self.exchange_id} not supported by ccxt")
+
+        async def close(self):
+            return None
+
+    with patch("app.main.ExchangeService", DummyExchangeService):
+        response = await async_client.post(
+            "/api/v1/markets/sync",
+            json={"exchanges": ["definitely-not-real"]},
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Exchange definitely-not-real not supported by ccxt"
+    }
