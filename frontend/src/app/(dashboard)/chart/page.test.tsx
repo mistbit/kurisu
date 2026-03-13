@@ -7,6 +7,7 @@ import ChartPage from '@/app/(dashboard)/chart/page';
 const {
   searchParamValues,
   pushMock,
+  replaceMock,
   backMock,
   getOHLCVMock,
   normalizeOhlcvTupleMock,
@@ -14,6 +15,7 @@ const {
 } = vi.hoisted(() => ({
   searchParamValues: {} as Record<string, string | undefined>,
   pushMock: vi.fn(),
+  replaceMock: vi.fn(),
   backMock: vi.fn(),
   getOHLCVMock: vi.fn(),
   normalizeOhlcvTupleMock: vi.fn((tuple: [number, number, number, number, number, number]) => ({
@@ -30,9 +32,19 @@ const {
 vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => searchParamValues[key] ?? null,
+    toString: () =>
+      new URLSearchParams(
+        Object.entries(searchParamValues).reduce<Record<string, string>>((acc, [key, value]) => {
+          if (value) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {}),
+      ).toString(),
   }),
   useRouter: () => ({
     push: pushMock,
+    replace: replaceMock,
     back: backMock,
   }),
 }));
@@ -61,6 +73,7 @@ vi.mock('recharts', () => ({
 describe('ChartPage', () => {
   beforeEach(() => {
     pushMock.mockReset();
+    replaceMock.mockReset();
     backMock.mockReset();
     getOHLCVMock.mockReset();
     normalizeOhlcvTupleMock.mockClear();
@@ -106,6 +119,26 @@ describe('ChartPage', () => {
     }
 
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket);
+  });
+
+  it('syncs the current chart view back into the URL', async () => {
+    render(<ChartPage />);
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /^\/chart\?market_id=99&symbol=ETH%2FUSDT&exchange=binance&timeframe=1h&start_time=.*&end_time=.*$/,
+        ),
+      );
+    });
+
+    replaceMock.mockReset();
+
+    await userEvent.click(screen.getByRole('button', { name: '4h' }));
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith(expect.stringContaining('timeframe=4h'));
+    });
   });
 
   it('opens backtest with the current market and timeframe', async () => {
@@ -182,6 +215,12 @@ describe('ChartPage', () => {
         end_time: '2026-03-08T23:59:59.999Z',
         limit: 500,
       });
+    });
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith(
+        '/chart?market_id=99&symbol=ETH%2FUSDT&exchange=binance&timeframe=1h&start_time=2026-03-02T00%3A00%3A00.000Z&end_time=2026-03-08T23%3A59%3A59.999Z',
+      );
     });
   });
 });

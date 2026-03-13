@@ -98,6 +98,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 export default function ChartPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const currentQueryString = searchParams.toString();
 
   const marketId = searchParams.get('market_id');
   const symbol = searchParams.get('symbol') || '';
@@ -157,6 +158,37 @@ export default function ChartPage() {
       setEndDate(parsedEndDate);
     }
   }, [requestedEndTime, requestedStartTime, requestedTimeframe]);
+
+  useEffect(() => {
+    if (!marketId || !startDate || !endDate) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(currentQueryString);
+    nextParams.set('market_id', marketId);
+    nextParams.set('timeframe', timeframe);
+    nextParams.set('start_time', toRangeStartIso(startDate));
+    nextParams.set('end_time', toRangeEndIso(endDate));
+
+    if (symbol) {
+      nextParams.set('symbol', symbol);
+    } else {
+      nextParams.delete('symbol');
+    }
+
+    if (exchange) {
+      nextParams.set('exchange', exchange);
+    } else {
+      nextParams.delete('exchange');
+    }
+
+    const nextQueryString = nextParams.toString();
+    if (nextQueryString === currentQueryString) {
+      return;
+    }
+
+    router.replace(`/chart?${nextQueryString}`);
+  }, [currentQueryString, endDate, exchange, marketId, router, startDate, symbol, timeframe]);
 
   const fetchData = useCallback(async () => {
     if (!marketId) return;
